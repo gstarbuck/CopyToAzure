@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Blob;
+using System;
 using System.Configuration;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace CopyToAzure
 {
@@ -15,19 +11,21 @@ namespace CopyToAzure
         private static void Main(string[] args)
         {
 
-            string storageAccountConnectionString;
-            string blobContainerName;
             string baseDirectoryPath;
+            string blobContainerName;
+            string versionToPublish;
 
             try
             {
-                storageAccountConnectionString = args[0];
+                baseDirectoryPath = args[0];
                 blobContainerName = args[1];
-                baseDirectoryPath = args[2];
+                versionToPublish = args[2];
             }
             catch
             {
-                Console.WriteLine("Usage: CopyToAzure [storage connection string] [blob container name] [base directory path]");
+                Console.WriteLine("Usage: CopyToAzure [base directory path] [blob container name] [version to publish]");
+                Console.WriteLine(@"Example: CopyToAzure C:\dev\MMSD\DARC-WPF\Applications\WPF\DarcWpfClient\DarcWpfClient\publish\ darcdev ");
+                return;
             }
 
             // Load up the storage account from your connection string
@@ -39,7 +37,8 @@ namespace CopyToAzure
 
             //Retrieve a reference to the container
             //TODO: replace hardcoded container name with command line argument
-            CloudBlobContainer blobContainer = blobClient.GetContainerReference("darcdev");
+            //CloudBlobContainer blobContainer = blobClient.GetContainerReference("darcdev");
+            CloudBlobContainer blobContainer = blobClient.GetContainerReference(blobContainerName);
 
             //Create the container if it doesn't already exist
             blobContainer.CreateIfNotExists();
@@ -50,12 +49,12 @@ namespace CopyToAzure
 
             // Now recurse through the submitted directory and upload all files
             //TODO: replace directory with command line reference
-            var baseDirectoryPath = @"C:\dev\MMSD\DARC-WPF\Applications\WPF\DarcWpfClient\DarcWpfClient\publish\";
-            ProcessFolder(baseDirectoryPath, baseDirectoryPath, blobContainer);
+            //var baseDirectoryPath = @"C:\dev\MMSD\DARC-WPF\Applications\WPF\DarcWpfClient\DarcWpfClient\publish\";
+            ProcessFolder(baseDirectoryPath, baseDirectoryPath, blobContainer, versionToPublish);
             Console.WriteLine("Done!");
         }
 
-        private static void ProcessFolder(string baseDirectoryPath, string folderToProcess, CloudBlobContainer blobContainer)
+        private static void ProcessFolder(string baseDirectoryPath, string folderToProcess, CloudBlobContainer blobContainer, string versionToPublish)
         {
             var directory =
                 new DirectoryInfo(folderToProcess);
@@ -65,7 +64,10 @@ namespace CopyToAzure
                 //if ((info.Attributes & FileAttributes.Directory) != FileAttributes.Directory)
                 if ((info.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
-                    ProcessFolder(baseDirectoryPath, info.FullName, blobContainer);
+                    if (info.FullName.Contains(@"Application Files\") && info.FullName.Contains(versionToPublish.Replace(".","_")))
+                    {
+                        ProcessFolder(baseDirectoryPath, info.FullName, blobContainer, versionToPublish);
+                    }
                 }
                 else
                 {
