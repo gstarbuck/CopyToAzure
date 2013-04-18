@@ -1,25 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace CopyToAzure
 {
     internal class AzureStorageHelper
     {
-        private class AzureStorageConstants
-        {
-            public const string Key = "xxxx";
-            public const string SharedKeyAuthorizationScheme = "SharedKey";
-            public const string Account = "xxxx";
-            public const string BlobEndPoint = "http://xxxxx.blob.core.windows.net/";
-        }
-
         public String CreateAuthorizationHeader(String canonicalizedString)
         {
             String signature;
@@ -29,11 +18,11 @@ namespace CopyToAzure
 
             using (var hmacSha256 = new HMACSHA256(storageKey))
             {
-                Byte[] dataToHmac = System.Text.Encoding.UTF8.GetBytes(canonicalizedString);
+                Byte[] dataToHmac = Encoding.UTF8.GetBytes(canonicalizedString);
                 signature = Convert.ToBase64String(hmacSha256.ComputeHash(dataToHmac));
             }
 
-            var authorizationHeader = String.Format(
+            string authorizationHeader = String.Format(
                 CultureInfo.InvariantCulture,
                 "{0} {1}:{2}",
                 AzureStorageConstants.SharedKeyAuthorizationScheme,
@@ -47,21 +36,21 @@ namespace CopyToAzure
         {
             const string requestMethod = "PUT";
 
-            var urlPath = String.Format("{0}/{1}", containerName, blobName);
+            string urlPath = String.Format("{0}/{1}", containerName, blobName);
 
             const string storageServiceVersion = "2011-08-18"; // "2009-09-19";
 
-            var dateInRfc1123Format = DateTime.UtcNow.ToString("R", CultureInfo.InvariantCulture);
+            string dateInRfc1123Format = DateTime.UtcNow.ToString("R", CultureInfo.InvariantCulture);
 
-            var content = "The Name of This Band is Talking Heads";
+            string content = "The Name of This Band is Talking Heads";
             var utf8Encoding = new UTF8Encoding();
-            var blobContent = utf8Encoding.GetBytes(content);
-            var blobLength = blobContent.Length;
+            byte[] blobContent = utf8Encoding.GetBytes(content);
+            int blobLength = blobContent.Length;
 
             const String blobType = "BlockBlob";
 
 
-            var canonicalizedHeaders = String.Format(
+            string canonicalizedHeaders = String.Format(
                 "x-ms-blob-type:{0}\nx-ms-date:{1}\nx-ms-version:{2}",
                 blobType,
                 dateInRfc1123Format,
@@ -74,8 +63,8 @@ namespace CopyToAzure
              storageServiceVersion,
              blobLength.ToString());
             */
-            var canonicalizedResource = String.Format("/{0}/{1}", AzureStorageConstants.Account, urlPath);
-            var stringToSign = String.Format(
+            string canonicalizedResource = String.Format("/{0}/{1}", AzureStorageConstants.Account, urlPath);
+            string stringToSign = String.Format(
                 "{0}\n\n\n{1}\n\n\n\n\n\n\n\n\n{2}\n{3}",
                 requestMethod,
                 blobLength,
@@ -94,7 +83,7 @@ namespace CopyToAzure
 
             try
             {
-                using (var requestStream = request.GetRequestStream())
+                using (Stream requestStream = request.GetRequestStream())
                 {
                     requestStream.Write(blobContent, 0, blobLength);
                 }
@@ -108,18 +97,25 @@ namespace CopyToAzure
             {
                 if (webEx != null)
                 {
-                    var resp = webEx.Response;
+                    WebResponse resp = webEx.Response;
                     if (resp != null)
                     {
                         using (var sr = new StreamReader(resp.GetResponseStream(), true))
                         {
-                            var responseText = sr.ReadToEnd();
-                                //This is where details about this 403 message can be found
+                            string responseText = sr.ReadToEnd();
+                            //This is where details about this 403 message can be found
                         }
                     }
                 }
             }
         }
 
+        private class AzureStorageConstants
+        {
+            public const string Key = "xxxx";
+            public const string SharedKeyAuthorizationScheme = "SharedKey";
+            public const string Account = "xxxx";
+            public const string BlobEndPoint = "http://xxxxx.blob.core.windows.net/";
+        }
     }
 }

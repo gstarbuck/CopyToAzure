@@ -36,8 +36,6 @@ namespace CopyToAzure
             CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
 
             //Retrieve a reference to the container
-            //TODO: replace hardcoded container name with command line argument
-            //CloudBlobContainer blobContainer = blobClient.GetContainerReference("darcdev");
             CloudBlobContainer blobContainer = blobClient.GetContainerReference(blobContainerName);
 
             //Create the container if it doesn't already exist
@@ -48,8 +46,6 @@ namespace CopyToAzure
 
 
             // Now recurse through the submitted directory and upload all files
-            //TODO: replace directory with command line reference
-            //var baseDirectoryPath = @"C:\dev\MMSD\DARC-WPF\Applications\WPF\DarcWpfClient\DarcWpfClient\publish\";
             ProcessFolder(baseDirectoryPath, baseDirectoryPath, blobContainer, versionToPublish);
             Console.WriteLine("Done!");
         }
@@ -61,9 +57,9 @@ namespace CopyToAzure
             foreach (FileSystemInfo info in directory.EnumerateFileSystemInfos())
             {
                 // Determine if entry is a directory or a file
-                //if ((info.Attributes & FileAttributes.Directory) != FileAttributes.Directory)
                 if ((info.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
+                    // Ignore older versions to speed up publishing
                     if (info.FullName.Contains(@"Application Files\") && info.FullName.Contains(versionToPublish.Replace(".","_")))
                     {
                         ProcessFolder(baseDirectoryPath, info.FullName, blobContainer, versionToPublish);
